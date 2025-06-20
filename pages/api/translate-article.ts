@@ -2,15 +2,11 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '../../lib/firebase-admin';
 import * as deepl from 'deepl-node';
 
-// DeepL API anahtarını kontrol et
 const authKey = process.env.DEEPL_API_KEY_1;
 if (!authKey) {
-  // Eğer anahtar yoksa, sunucuyu yanıltıcı bir hata yerine net bir hatayla durdur.
-  // Bu aynı zamanda build hatasını da önler.
   throw new Error("DEEPL_API_KEY_1 environment variable is not set.");
 }
 
-// Anahtarın varlığından emin olduktan sonra translator'ı başlat
 const translator = new deepl.Translator(authKey);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -40,10 +36,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Başlığı ve içeriği çevir
     const translatedTitleResult = await translator.translateText(rawArticle.title, null, 'tr');
-   const translatedContentResult = await translator.translateText(rawArticle.content, null, 'tr');
+    const translatedContentResult = await translator.translateText(rawArticle.content, null, 'tr');
 
-    const translatedTitle = translatedTitleResult.text;
-    const translatedContent = translatedContentResult.text;
+    // === YENİ EKLENEN DÜZELTME BAŞLANGICI ===
+    // TypeScript'in tür hatasını çözmek için gelen sonucun dizi olup olmadığını kontrol et
+    const translatedTitle = Array.isArray(translatedTitleResult) 
+      ? translatedTitleResult[0].text 
+      : translatedTitleResult.text;
+
+    const translatedContent = Array.isArray(translatedContentResult)
+      ? translatedContentResult[0].text
+      : translatedContentResult.text;
+    // === YENİ EKLENEN DÜZELTME SONU ===
 
     // Çevrilmiş veriyi yeni koleksiyona kaydet
     await db.collection('translated_articles').add({
