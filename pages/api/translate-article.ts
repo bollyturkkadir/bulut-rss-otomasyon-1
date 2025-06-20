@@ -40,7 +40,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Başlığı ve içeriği çevir
     const translatedTitleResult = await translator.translateText(rawArticle.title, null, 'tr');
-    const translatedContentResult = await translator.translateText(rawarticle.content, null, 'tr');
+   const translatedContentResult = await translator.translateText(rawArticle.content, null, 'tr');
 
     const translatedTitle = translatedTitleResult.text;
     const translatedContent = translatedContentResult.text;
