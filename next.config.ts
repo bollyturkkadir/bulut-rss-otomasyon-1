@@ -1,8 +1,7 @@
 import type { NextConfig } from "next";
-import { env } from "process";
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: [env.REPLIT_DOMAINS.split(",")[0]],
+  // Replit'e özel olan ve Vercel'de hataya neden olan satır kaldırıldı.
 };
 
 module.exports = nextConfig;
