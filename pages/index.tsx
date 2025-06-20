@@ -3,22 +3,43 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../lib/firebase";
 import { collection, addDoc, onSnapshot, query, where, deleteDoc, doc } from "firebase/firestore";
+import type { SetStateAction } from 'react'; // Bu satırı import ediyoruz
+
+// === YENİ EKLENEN TİP TANIMLAMALARI BAŞLANGICI ===
+interface Feed {
+  id: string;
+  url: string;
+  [key: string]: any; // Firebase'den gelebilecek diğer alanlar için
+}
+
+interface RawArticle {
+  id: string;
+  title: string;
+  link: string;
+  [key: string]: any; // Firebase'den gelebilecek diğer alanlar için
+}
+// === YENİ EKLENEN TİP TANIMLAMALARI SONU ===
 
 export default function Home() {
     const { user, googleSignIn, logOut } = useAuth();
-    const [feeds, setFeeds] = useState([]);
+
+    // === GÜNCELLENMİŞ STATE TANIMLAMALARI ===
+    const [feeds, setFeeds] = useState<Feed[]>([]);
     const [newFeed, setNewFeed] = useState("");
-    const [rawArticles, setRawArticles] = useState([]);
+    const [rawArticles, setRawArticles] = useState<RawArticle[]>([]);
+    // === GÜNCELLENMİŞ STATE TANIMLAMALARI SONU ===
+
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState("");
-    const [processingId, setProcessingId] = useState(null);
+    const [processingId, setProcessingId] = useState<string | null>(null);
 
     // RSS Feeds listesini çek
     useEffect(() => {
         if (user) {
             const q = query(collection(db, "rss_feeds"));
             const unsubscribe = onSnapshot(q, (querySnapshot) => {
-                setFeeds(querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+                const feedsData = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as Feed[];
+                setFeeds(feedsData);
             });
             return () => unsubscribe();
         }
@@ -29,20 +50,21 @@ export default function Home() {
         if (user) {
             const q = query(collection(db, "raw_articles"), where("status", "==", "pending"));
             const unsubscribe = onSnapshot(q, (querySnapshot) => {
-                setRawArticles(querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+                const articlesData = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as RawArticle[];
+                setRawArticles(articlesData);
             });
             return () => unsubscribe();
         }
     }, [user]);
 
-    const addFeed = async (e) => { e.preventDefault(); if (newFeed.trim() === "") { alert("Lütfen geçerli bir URL girin."); return; } await addDoc(collection(db, "rss_feeds"), { url: newFeed, addedAt: new Date(), userId: user.uid }); setNewFeed(""); };
-    const deleteFeed = async (id) => { await deleteDoc(doc(db, "rss_feeds", id)); };
+    const addFeed = async (e: React.FormEvent) => { e.preventDefault(); if (newFeed.trim() === "" || !user) { alert("Lütfen geçerli bir URL girin."); return; } await addDoc(collection(db, "rss_feeds"), { url: newFeed, addedAt: new Date(), userId: user.uid }); setNewFeed(""); };
+    const deleteFeed = async (id: string) => { await deleteDoc(doc(db, "rss_feeds", id)); };
     const handleFetchAll = async () => { setLoading(true); setMessage("İçerikler çekiliyor, lütfen bekleyin..."); try { const res = await fetch('/api/fetch-all', { method: 'POST' }); const data = await res.json(); if (data.success) { setMessage(data.message); } else { setMessage(`Hata: ${data.message}`); } } catch (error) { setMessage("API çağrılırken bir hata oluştu."); console.error(error); } setLoading(false); };
     const handleSignIn = async () => { try { await googleSignIn(); } catch (error) { console.error(error); } };
     const handleSignOut = async () => { try { await logOut(); } catch (error) { console.error(error); } };
 
     // Makaleyi DeepL ile çevir
-    const handleTranslateArticle = async (id) => {
+    const handleTranslateArticle = async (id: string) => {
         setProcessingId(id);
         try {
             const res = await fetch('/api/translate-article', {
@@ -54,7 +76,6 @@ export default function Home() {
             if (!data.success) {
                 alert(`Hata: ${data.message}`);
             }
-            // Başarılı olunca, onSnapshot sayesinde liste otomatik güncellenecek
         } catch (error) {
             alert("API çağrılırken bir hata oluştu.");
             console.error(error);
@@ -69,7 +90,6 @@ export default function Home() {
                     <h1 className="text-3xl font-bold">RSS Otomasyon Paneli</h1>
                     {user && ( <button onClick={handleSignOut} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm">Çıkış Yap</button> )}
                 </div>
-
                 {!user ? (
                     <div className="text-center bg-white p-8 rounded-lg shadow-md">
                         <p className="mb-4">İçerikleri yönetmek için lütfen giriş yapın.</p>
@@ -80,8 +100,6 @@ export default function Home() {
                         <div className="bg-white p-6 rounded-lg shadow-md"> <h2 className="text-2xl font-semibold mb-4">Kontrol Paneli</h2> <button onClick={handleFetchAll} disabled={loading} className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition-colors">{loading ? 'Çekiliyor...' : 'Tüm Kaynaklardan İçerikleri Çek'}</button> {message && <p className="mt-4 text-sm text-gray-600">{message}</p>} </div>
                         <div className="bg-white p-6 rounded-lg shadow-md"> <h2 className="text-2xl font-semibold mb-4">Yeni RSS Kaynağı Ekle</h2> <form onSubmit={addFeed} className="flex"> <input type="url" value={newFeed} onChange={(e) => setNewFeed(e.target.value)} placeholder="https://ornek-site.com/rss" className="flex-grow p-3 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500" /> <button type="submit" className="px-6 py-3 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700 transition-colors">Ekle</button> </form> </div>
                         <div className="bg-white p-6 rounded-lg shadow-md"> <h2 className="text-2xl font-semibold mb-4">Kaydedilmiş Kaynaklar</h2> <ul> {feeds.map((feed) => (<li key={feed.id} className="flex justify-between items-center p-3 mb-2 border-b border-gray-200"> <span className="break-all">{feed.url}</span> <button onClick={() => deleteFeed(feed.id)} className="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm">Sil</button> </li>))} {feeds.length === 0 && (<li className="text-gray-500">Henüz RSS kaynağı eklenmedi.</li>)} </ul> </div>
-
-                        {/* Çevrilecek Makaleler Bölümü */}
                         <div className="bg-white p-6 rounded-lg shadow-md">
                             <h2 className="text-2xl font-semibold mb-4">Çevrilmeyi Bekleyen Ham Makaleler ({rawArticles.length})</h2>
                             <ul className="space-y-2">
