@@ -1,10 +1,11 @@
 "use client";
 import { useState, useEffect } from "react";
-import { db } from "../lib/firebase";
-import { collection, addDoc, onSnapshot, query, where, deleteDoc, doc } from "firebase/firestore";
+// --- EN ÖNEMLİ DEĞİŞİKLİK: FIREBASE IMPORT'LARI TAMAMEN KALDIRILDI ---
+// import { db } from "../lib/firebase";
+// import { collection, addDoc, onSnapshot, query, where, deleteDoc, doc } from "firebase/firestore";
 import type { SetStateAction } from 'react';
 
-// Hata 2 Düzeltmesi: Eksik tip (interface) tanımlamaları eklendi.
+// Tip tanımlamaları
 interface Feed {
   id: string;
   url: string;
@@ -26,85 +27,22 @@ export default function Home() {
     const [message, setMessage] = useState("");
     const [processingId, setProcessingId] = useState<string | null>(null);
 
-    // Hata 1 Düzeltmesi: Build hatasını önlemek için bu useEffect'ler geçici olarak devre dışı bırakıldı.
-    /*
-    // RSS Feeds listesini çekme
-    useEffect(() => {
-        const q = query(collection(db, "rss_feeds"));
-        const unsubscribe = onSnapshot(q, (querySnapshot) => {
-            const feedsData = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as Feed[];
-            setFeeds(feedsData);
-        });
-        return () => unsubscribe();
-    }, []);
-
-    // Çevrilmeyi bekleyen ham makaleleri çekme
-    useEffect(() => {
-        const q = query(collection(db, "raw_articles"), where("status", "==", "pending"));
-        const unsubscribe = onSnapshot(q, (querySnapshot) => {
-            const articlesData = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as RawArticle[];
-            setRawArticles(articlesData);
-        });
-        return () => unsubscribe();
-    }, []);
-    */
-
+    // Bütün fonksiyonların içi geçici olarak boşaltıldı.
     const addFeed = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (newFeed.trim() === "") {
-            alert("Lütfen geçerli bir URL girin.");
-            return;
-        }
-        await addDoc(collection(db, "rss_feeds"), { 
-            url: newFeed, 
-            addedAt: new Date(),
-        });
-        setNewFeed("");
-        alert("RSS Kaynağı eklendi! Listenin güncellenmesi için sayfayı yenilemeniz gerekebilir.");
+        alert("Bu özellik geçici olarak devre dışıdır.");
     };
 
     const deleteFeed = async (id: string) => {
-        await deleteDoc(doc(db, "rss_feeds", id));
-        alert("RSS Kaynağı silindi! Listenin güncellenmesi için sayfayı yenilemeniz gerekebilir.");
+        alert("Bu özellik geçici olarak devre dışıdır.");
     };
 
     const handleFetchAll = async () => {
-        setLoading(true);
-        setMessage("İçerikler çekiliyor, lütfen bekleyin...");
-        try {
-            const res = await fetch('/api/fetch-all', { method: 'POST' });
-            const data = await res.json();
-            if (data.success) {
-                setMessage(data.message);
-            } else {
-                setMessage(`Hata: ${data.message}`);
-            }
-        } catch (error) {
-            setMessage("API çağrılırken bir hata oluştu.");
-            console.error(error);
-        }
-        setLoading(false);
+        alert("Bu özellik geçici olarak devre dışıdır.");
     };
 
     const handleTranslateArticle = async (id: string) => {
-        setProcessingId(id);
-        try {
-            const res = await fetch('/api/translate-article', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: id }),
-            });
-            const data = await res.json();
-            if (!data.success) {
-                alert(`Hata: ${data.message}`);
-            } else {
-                alert("Makale çevrildi ve ham listeden kaldırıldı! Sayfayı yenileyerek kontrol edebilirsiniz.");
-            }
-        } catch (error) {
-            alert("API çağrılırken bir hata oluştu.");
-            console.error(error);
-        }
-        setProcessingId(null);
+        alert("Bu özellik geçici olarak devre dışıdır.");
     };
 
     return (
@@ -131,27 +69,13 @@ export default function Home() {
                     <div className="bg-white p-6 rounded-lg shadow-md">
                         <h2 className="text-2xl font-semibold mb-4">Kaydedilmiş Kaynaklar</h2>
                         <ul>
-                            {feeds.map((feed) => (
-                                <li key={feed.id} className="flex justify-between items-center p-3 mb-2 border-b border-gray-200">
-                                    <span className="break-all">{feed.url}</span>
-                                    <button onClick={() => deleteFeed(feed.id)} className="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm">Sil</button>
-                                </li>
-                            ))}
-                            {feeds.length === 0 && (<li className="text-gray-500">Henüz RSS kaynağı eklenmedi. (Listeyi görmek için sayfayı yenileyin)</li>)}
+                             <li className="text-gray-500">Bu özellik geçici olarak devre dışıdır.</li>
                         </ul>
                     </div>
                     <div className="bg-white p-6 rounded-lg shadow-md">
-                        <h2 className="text-2xl font-semibold mb-4">Çevrilmeyi Bekleyen Ham Makaleler ({rawArticles.length})</h2>
+                        <h2 className="text-2xl font-semibold mb-4">Çevrilmeyi Bekleyen Ham Makaleler</h2>
                         <ul className="space-y-2">
-                            {rawArticles.map((article) => (
-                                <li key={article.id} className="flex justify-between items-center p-3 border-b">
-                                    <a href={article.link} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 truncate mr-4" title={article.title}>{article.title}</a>
-                                    <button onClick={() => handleTranslateArticle(article.id)} disabled={processingId === article.id} className="px-3 py-1 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm whitespace-nowrap disabled:bg-gray-400">
-                                        {processingId === article.id ? 'Çeviriliyor...' : 'DeepL ile Çevir'}
-                                    </button>
-                                </li>
-                            ))}
-                            {rawArticles.length === 0 && (<li className="text-gray-500">Çevrilecek yeni makale bulunmuyor. (Listeyi görmek için sayfayı yenileyin)</li>)}
+                            <li className="text-gray-500">Bu özellik geçici olarak devre dışıdır.</li>
                         </ul>
                     </div>
                 </div>
