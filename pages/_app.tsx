@@ -1,14 +1,11 @@
-import '@/styles/globals.css'
-import type { AppProps } from 'next/app'
-import { AuthContextProvider } from '../context/AuthContext'
-import Layout from '@/components/layout'
+import '../styles/globals.css';
+import type { AppProps } from 'next/app';
 
-export default function App({ Component, pageProps }: AppProps) {
-  return (
-    <AuthContextProvider>
-      <Layout>
-        <Component {...pageProps} />
-      </Layout>
-    </AuthContextProvider>
-  )
+// AuthProvider import'u ve kullanımı tamamen kaldırıldı.
+
+function MyApp({ Component, pageProps }: AppProps) {
+  // Artık AuthProvider ile sarmalama yapmıyoruz.
+  return <Component {...pageProps} />;
 }
+
+export default MyApp;
