@@ -1,32 +1,33 @@
 import * as admin from 'firebase-admin';
 
-// Gerekli ortam değişkenlerinin varlığını kontrol et
-if (
-  !process.env.FIREBASE_PROJECT_ID ||
-  !process.env.FIREBASE_CLIENT_EMAIL ||
-  !process.env.FIREBASE_PRIVATE_KEY
-) {
-  // Eğer değişkenlerden biri bile eksikse, anlamlı bir hata vererek işlemi durdur.
-  throw new Error('Firebase Admin environment variables are not set.');
-}
-
-try {
-  // Eğer Firebase uygulaması zaten başlatılmamışsa başlat
-  if (!admin.apps.length) {
+// Check if the app is already initialized to prevent errors during hot-reloads
+if (!admin.apps.length) {
+  try {
+    // Ensure environment variables are present before trying to initialize
+    if (
+        !process.env.FIREBASE_PROJECT_ID ||
+        !process.env.FIREBASE_CLIENT_EMAIL ||
+        !process.env.FIREBASE_PRIVATE_KEY
+    ) {
+        throw new Error('Firebase Admin environment variables are not set.');
+    }
+      
     admin.initializeApp({
       credential: admin.credential.cert({
         projectId: process.env.FIREBASE_PROJECT_ID,
         clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        // .replace() fonksiyonu artık güvenli çünkü değişkenin varlığını yukarıda kontrol ettik.
-        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+        // This replaces the literal characters \\n with actual newlines, crucial for Vercel
+        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
       }),
     });
+    console.log('Firebase Admin SDK initialized successfully.');
+
+  } catch (error) {
+    console.error('Firebase Admin SDK initialization error:', error);
   }
-} catch (error) {
-  console.error('Firebase admin initialization error', error);
 }
 
-// vercel-build sırasında "db" dışarıya aktarıldığında hata verebiliyor, bu yüzden doğrudan "firestore()" olarak export ediyoruz.
+// Export the initialized firestore and auth instances
 const db = admin.firestore();
 const auth = admin.auth();
 
